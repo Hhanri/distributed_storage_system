@@ -23,6 +23,10 @@ func NewTCPPeer(conn net.Conn, outbound bool) *TCPPeer {
 	}
 }
 
+func (p *TCPPeer) Close() error {
+	return p.conn.Close()
+}
+
 type TCPTransportOpts struct {
 	ListenAddress string
 	Handshaker    Handshaker
@@ -73,7 +77,7 @@ func (t *TCPTransport) handleConnection(conn net.Conn) {
 
 	if err := t.Handshaker.ShakeHands(peer); err != nil {
 		fmt.Printf("Invalid handshake: %s\n", err)
-		conn.Close()
+		peer.Close()
 		return
 	}
 

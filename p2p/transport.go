@@ -2,6 +2,7 @@ package p2p
 
 // Peer is any remote note
 type Peer interface {
+	Close() error
 }
 
 // Transport is anything that handles communication
