@@ -79,13 +79,12 @@ func (t *TCPTransport) startAcceptLoop() {
 }
 
 func (t *TCPTransport) handleConnection(conn net.Conn) {
-	var err  error
+	var err error
 
 	defer func() {
-		fmt.Printf("Dropping peer connection: %s\n". err)
+		fmt.Printf("Dropping peer connection: %s\n", err)
 		conn.Close()
-
-	}
+	}()
 
 	peer := NewTCPPeer(conn, true)
 
