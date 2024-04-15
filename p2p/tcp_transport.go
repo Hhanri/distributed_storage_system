@@ -37,6 +37,7 @@ type TCPTransport struct {
 	TCPTransportOpts
 	listener net.Listener
 
+	rpcCh chan RPC
 	mu    sync.RWMutex
 	peers map[net.Addr]Peer
 }
@@ -44,6 +45,7 @@ type TCPTransport struct {
 func NewTCPTransport(opts TCPTransportOpts) *TCPTransport {
 	return &TCPTransport{
 		TCPTransportOpts: opts,
+		rpcCh:            make(chan RPC),
 	}
 }
 
@@ -57,6 +59,10 @@ func (t *TCPTransport) ListenAndAccept() error {
 	go t.startAcceptLoop()
 
 	return nil
+}
+
+func (t *TCPTransport) Consume() <-chan RPC {
+	return t.rpcCh
 }
 
 func (t *TCPTransport) startAcceptLoop() {
