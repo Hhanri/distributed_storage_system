@@ -78,23 +78,27 @@ func (t *TCPTransport) startAcceptLoop() {
 }
 
 func (t *TCPTransport) handleConnection(conn net.Conn) {
+	var err  error
+
+	defer func() {
+		fmt.Printf("Dropping peer connection: %s\n". err)
+		conn.Close()
+
+	}
 
 	peer := NewTCPPeer(conn, true)
 
-	if err := t.Handshaker.ShakeHands(peer); err != nil {
-		fmt.Printf("Invalid handshake: %s\n", err)
-		peer.Close()
+	if err = t.Handshaker.ShakeHands(peer); err != nil {
 		return
 	}
 
 	rpc := RPC{}
 	for {
-		if err := t.Decoder.Decode(conn, &rpc); err != nil {
+		if err = t.Decoder.Decode(conn, &rpc); err != nil {
 			fmt.Printf("TCP error: %s\n", err)
 			continue
 		}
 		rpc.From = conn.RemoteAddr()
-		fmt.Printf("message: %+v\n", rpc)
 		t.rpcCh <- rpc
 	}
 
