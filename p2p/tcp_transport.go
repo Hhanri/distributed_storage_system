@@ -31,6 +31,7 @@ type TCPTransportOpts struct {
 	ListenAddress string
 	Handshaker    Handshaker
 	Decoder       Decoder
+	OnPeer        func(Peer) error
 }
 
 type TCPTransport struct {
@@ -90,6 +91,12 @@ func (t *TCPTransport) handleConnection(conn net.Conn) {
 
 	if err = t.Handshaker.ShakeHands(peer); err != nil {
 		return
+	}
+
+	if t.OnPeer != nil {
+		if err = t.OnPeer(peer); err != nil {
+			return
+		}
 	}
 
 	rpc := RPC{}
