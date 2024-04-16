@@ -2,6 +2,7 @@ package store
 
 import (
 	"bytes"
+	"io/ioutil"
 	"testing"
 )
 
@@ -12,10 +13,25 @@ func TestStore(t *testing.T) {
 	}
 	store := NewStore(opts)
 
-	data := bytes.NewReader([]byte("some jpg bytes idk just go with it"))
+	key := "myImageKey"
 
-	if err := store.writeStream("myImageKey", data); err != nil {
+	data := []byte("some jpg bytes idk just go with it")
+
+	if err := store.writeStream(key, bytes.NewReader(data)); err != nil {
 		t.Error(err)
 	}
 
+	reader, err := store.read(key)
+	if err != nil {
+		t.Error(err)
+	}
+
+	bytes, err := ioutil.ReadAll(reader)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if string(bytes) != string(data) {
+		t.Errorf("expected %s\ngot %s", data, bytes)
+	}
 }

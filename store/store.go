@@ -1,6 +1,7 @@
 package store
 
 import (
+	"bytes"
 	"io"
 	"log"
 	"os"
@@ -18,6 +19,26 @@ func NewStore(opts StoreOpts) *Store {
 	return &Store{
 		StoreOpts: opts,
 	}
+}
+
+func (s *Store) read(key string) (io.Reader, error) {
+	f, err := s.readStream(key)
+	if err != nil {
+		return nil, err
+	}
+
+	defer f.Close()
+
+	buff := new(bytes.Buffer)
+
+	_, err = io.Copy(buff, f)
+
+	return buff, err
+}
+
+func (s *Store) readStream(key string) (io.ReadCloser, error) {
+	pathKey := s.pathTransform(key)
+	return os.Open(pathKey.FullPath())
 }
 
 func (s *Store) writeStream(key string, reader io.Reader) error {
