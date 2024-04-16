@@ -6,12 +6,25 @@ import (
 	"testing"
 )
 
-func TestStore(t *testing.T) {
-
+func newTestStore() *Store {
 	opts := StoreOpts{
 		pathTransform: hashPathTransform,
 	}
 	store := NewStore(opts)
+	return store
+}
+
+func tearDown(t *testing.T, store *Store) {
+	if err := store.clear(); err != nil {
+		t.Error(err)
+	}
+}
+
+func TestStore(t *testing.T) {
+
+	store := newTestStore()
+
+	defer tearDown(t, store)
 
 	key := "myImageKey"
 
@@ -42,10 +55,9 @@ func TestStore(t *testing.T) {
 
 func TestDelete(t *testing.T) {
 
-	opts := StoreOpts{
-		pathTransform: hashPathTransform,
-	}
-	store := NewStore(opts)
+	store := newTestStore()
+
+	defer tearDown(t, store)
 
 	key := "myImageKey"
 

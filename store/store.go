@@ -7,7 +7,7 @@ import (
 	"os"
 )
 
-const defaultRootStorage = "../storage"
+const defaultRootStorage string = "../storage"
 
 type StoreOpts struct {
 	// root folder for storage
@@ -51,6 +51,10 @@ func (s *Store) delete(key string) error {
 	}()
 
 	return os.RemoveAll(pathKey.FullPath(s.root))
+}
+
+func (s *Store) clear() error {
+	return os.RemoveAll(s.root)
 }
 
 func (s *Store) read(key string) (io.Reader, error) {
