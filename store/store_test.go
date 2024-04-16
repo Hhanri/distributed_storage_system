@@ -9,7 +9,7 @@ import (
 
 func newTestStore() *Store {
 	opts := StoreOpts{
-		pathTransform: hashPathTransform,
+		PathTransform: hashPathTransform,
 	}
 	store := NewStore(opts)
 	return store
