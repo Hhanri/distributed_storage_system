@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/Hhanri/distributed_storage_system/p2p"
 	"github.com/Hhanri/distributed_storage_system/store"
@@ -9,7 +10,8 @@ import (
 
 type FileServerOpts struct {
 	store.StoreOpts
-	Transport p2p.Transport
+	Transport      p2p.Transport
+	BootstrapNodes []string
 }
 
 type FileServer struct {
@@ -54,7 +56,18 @@ func (fs *FileServer) Start() error {
 		return err
 	}
 
+	fs.bootstrapNetwork()
 	fs.loop()
 
 	return nil
+}
+
+func (fs *FileServer) bootstrapNetwork() {
+	for _, addr := range fs.BootstrapNodes {
+		go func(addr string) {
+			if err := fs.Transport.Dial(addr); err != nil {
+				log.Println("dial error: ", err)
+			}
+		}(addr)
+	}
 }
