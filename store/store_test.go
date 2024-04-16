@@ -37,11 +37,11 @@ func TestStore(t *testing.T) {
 			t.Error(err)
 		}
 
-		if !store.has(key) {
+		if !store.Has(key) {
 			t.Errorf("no file found for key: %s", key)
 		}
 
-		reader, err := store.read(key)
+		reader, err := store.Read(key)
 		if err != nil {
 			t.Error(err)
 		}
@@ -55,11 +55,11 @@ func TestStore(t *testing.T) {
 			t.Errorf("expected %s\ngot %s", data, bytes)
 		}
 
-		if err := store.delete(key); err != nil {
+		if err := store.Delete(key); err != nil {
 			t.Error(err)
 		}
 
-		if store.has(key) {
+		if store.Has(key) {
 			t.Errorf("should not have key %s", key)
 		}
 

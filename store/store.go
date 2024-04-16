@@ -8,7 +8,7 @@ import (
 	"os"
 )
 
-const defaultRootStorage string = "../storage"
+const DefaultRootStorage string = "../storage"
 
 type StoreOpts struct {
 	// root folder for storage
@@ -25,7 +25,7 @@ func NewStore(opts StoreOpts) *Store {
 		opts.pathTransform = defaultPathTransform
 	}
 	if opts.root == "" {
-		opts.root = defaultRootStorage
+		opts.root = DefaultRootStorage
 	}
 
 	return &Store{
@@ -33,14 +33,14 @@ func NewStore(opts StoreOpts) *Store {
 	}
 }
 
-func (s *Store) has(key string) bool {
+func (s *Store) Has(key string) bool {
 	pathKey := s.pathTransform(key)
 
 	_, err := os.Stat(pathKey.FullPath(s.root))
 	return !errors.Is(err, os.ErrNotExist)
 }
 
-func (s *Store) delete(key string) error {
+func (s *Store) Delete(key string) error {
 	pathKey := s.pathTransform(key)
 
 	defer func() {
@@ -54,7 +54,7 @@ func (s *Store) clear() error {
 	return os.RemoveAll(s.root)
 }
 
-func (s *Store) read(key string) (io.Reader, error) {
+func (s *Store) Read(key string) (io.Reader, error) {
 	f, err := s.readStream(key)
 	if err != nil {
 		return nil, err
