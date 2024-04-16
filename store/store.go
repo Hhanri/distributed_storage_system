@@ -77,7 +77,7 @@ func (s *Store) writeStream(key string, reader io.Reader) error {
 
 	pathKey := s.pathTransform(key)
 
-	if err := os.MkdirAll(pathKey.PathName, os.ModePerm); err != nil {
+	if err := os.MkdirAll(pathKey.DirPath(s.root), os.ModePerm); err != nil {
 		return err
 	}
 
