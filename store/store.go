@@ -74,6 +74,10 @@ func (s *Store) readStream(key string) (io.ReadCloser, error) {
 	return os.Open(pathKey.FullPath(s.root))
 }
 
+func (s *Store) Write(key string, reader io.Reader) error {
+	return s.writeStream(key, reader)
+}
+
 func (s *Store) writeStream(key string, reader io.Reader) error {
 
 	pathKey := s.pathTransform(key)
