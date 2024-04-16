@@ -21,6 +21,16 @@ func NewStore(opts StoreOpts) *Store {
 	}
 }
 
+func (s *Store) delete(key string) error {
+	pathKey := s.pathTransform(key)
+
+	defer func() {
+		log.Printf("deleted [%s] from disk", pathKey.FileName)
+	}()
+
+	return os.RemoveAll(pathKey.FullPath())
+}
+
 func (s *Store) read(key string) (io.Reader, error) {
 	f, err := s.readStream(key)
 	if err != nil {
