@@ -11,9 +11,9 @@ import (
 const DefaultRootStorage string = "../storage"
 
 type StoreOpts struct {
-	// root folder for storage
-	root          string
-	pathTransform pathTransformFunc
+	// Root folder for storage
+	Root          string
+	PathTransform pathTransformFunc
 }
 
 type Store struct {
@@ -21,11 +21,11 @@ type Store struct {
 }
 
 func NewStore(opts StoreOpts) *Store {
-	if opts.pathTransform == nil {
-		opts.pathTransform = defaultPathTransform
+	if opts.PathTransform == nil {
+		opts.PathTransform = defaultPathTransform
 	}
-	if opts.root == "" {
-		opts.root = DefaultRootStorage
+	if opts.Root == "" {
+		opts.Root = DefaultRootStorage
 	}
 
 	return &Store{
@@ -34,24 +34,24 @@ func NewStore(opts StoreOpts) *Store {
 }
 
 func (s *Store) Has(key string) bool {
-	pathKey := s.pathTransform(key)
+	pathKey := s.PathTransform(key)
 
-	_, err := os.Stat(pathKey.FullPath(s.root))
+	_, err := os.Stat(pathKey.FullPath(s.Root))
 	return !errors.Is(err, os.ErrNotExist)
 }
 
 func (s *Store) Delete(key string) error {
-	pathKey := s.pathTransform(key)
+	pathKey := s.PathTransform(key)
 
 	defer func() {
 		log.Printf("deleted [%s] from disk", pathKey.FileName)
 	}()
 
-	return os.RemoveAll(pathKey.FullPath(s.root))
+	return os.RemoveAll(pathKey.FullPath(s.Root))
 }
 
 func (s *Store) clear() error {
-	return os.RemoveAll(s.root)
+	return os.RemoveAll(s.Root)
 }
 
 func (s *Store) Read(key string) (io.Reader, error) {
@@ -70,8 +70,8 @@ func (s *Store) Read(key string) (io.Reader, error) {
 }
 
 func (s *Store) readStream(key string) (io.ReadCloser, error) {
-	pathKey := s.pathTransform(key)
-	return os.Open(pathKey.FullPath(s.root))
+	pathKey := s.PathTransform(key)
+	return os.Open(pathKey.FullPath(s.Root))
 }
 
 func (s *Store) Write(key string, reader io.Reader) error {
@@ -80,13 +80,13 @@ func (s *Store) Write(key string, reader io.Reader) error {
 
 func (s *Store) writeStream(key string, reader io.Reader) error {
 
-	pathKey := s.pathTransform(key)
+	pathKey := s.PathTransform(key)
 
-	if err := os.MkdirAll(pathKey.DirPath(s.root), os.ModePerm); err != nil {
+	if err := os.MkdirAll(pathKey.DirPath(s.Root), os.ModePerm); err != nil {
 		return err
 	}
 
-	fullPath := pathKey.FullPath(s.root)
+	fullPath := pathKey.FullPath(s.Root)
 
 	file, err := os.Create(fullPath)
 	if err != nil {
