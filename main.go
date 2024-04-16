@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"time"
 
 	"github.com/Hhanri/distributed_storage_system/p2p"
 	"github.com/Hhanri/distributed_storage_system/store"
@@ -21,15 +22,20 @@ func main() {
 			Root:          store.DefaultRootStorage,
 			PathTransform: store.HashPathTransform,
 		},
+		BootstrapNodes: []string{":4000"},
 
 		Transport: transport,
 	}
 
 	server := NewFileServer(fileServerOtps)
 
+	go func() {
+		time.Sleep(time.Second * 3)
+		server.Stop()
+	}()
+
 	if err := server.Start(); err != nil {
 		log.Fatal(err)
 	}
 
-	select {}
 }
