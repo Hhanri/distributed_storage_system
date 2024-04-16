@@ -16,7 +16,7 @@ var defaultPathTransform = func(key string) PathKey {
 	}
 }
 
-func hashPathTransform(key string) PathKey {
+func HashPathTransform(key string) PathKey {
 	hash := sha1.Sum([]byte(key))
 	hashStr := hex.EncodeToString(hash[:])
 
