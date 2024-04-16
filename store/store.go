@@ -21,6 +21,17 @@ func NewStore(opts StoreOpts) *Store {
 	}
 }
 
+func (s *Store) has(key string) bool {
+	pathKey := s.pathTransform(key)
+
+	file, err := os.Stat(pathKey.FullPath())
+	if err != nil {
+		return false
+	}
+
+	return file != nil
+}
+
 func (s *Store) delete(key string) error {
 	pathKey := s.pathTransform(key)
 
