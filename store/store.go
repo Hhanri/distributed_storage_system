@@ -33,9 +33,9 @@ func NewStore(opts StoreOpts) *Store {
 }
 
 func (s *Store) has(key string) bool {
-	pathKey := s.pathTransform(s.root, key)
+	pathKey := s.pathTransform(key)
 
-	file, err := os.Stat(pathKey.FullPath())
+	file, err := os.Stat(pathKey.FullPath(s.root))
 	if err != nil {
 		return false
 	}
@@ -44,13 +44,13 @@ func (s *Store) has(key string) bool {
 }
 
 func (s *Store) delete(key string) error {
-	pathKey := s.pathTransform(s.root, key)
+	pathKey := s.pathTransform(key)
 
 	defer func() {
 		log.Printf("deleted [%s] from disk", pathKey.FileName)
 	}()
 
-	return os.RemoveAll(pathKey.FullPath())
+	return os.RemoveAll(pathKey.FullPath(s.root))
 }
 
 func (s *Store) read(key string) (io.Reader, error) {
@@ -69,19 +69,19 @@ func (s *Store) read(key string) (io.Reader, error) {
 }
 
 func (s *Store) readStream(key string) (io.ReadCloser, error) {
-	pathKey := s.pathTransform(s.root, key)
-	return os.Open(pathKey.FullPath())
+	pathKey := s.pathTransform(key)
+	return os.Open(pathKey.FullPath(s.root))
 }
 
 func (s *Store) writeStream(key string, reader io.Reader) error {
 
-	pathKey := s.pathTransform(s.root, key)
+	pathKey := s.pathTransform(key)
 
 	if err := os.MkdirAll(pathKey.PathName, os.ModePerm); err != nil {
 		return err
 	}
 
-	fullPath := pathKey.FullPath()
+	fullPath := pathKey.FullPath(s.root)
 
 	file, err := os.Create(fullPath)
 	if err != nil {

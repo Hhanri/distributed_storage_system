@@ -7,16 +7,16 @@ import (
 	"strings"
 )
 
-type pathTransformFunc func(root string, key string) PathKey
+type pathTransformFunc func(key string) PathKey
 
-var defaultPathTransform = func(root string, key string) PathKey {
+var defaultPathTransform = func(key string) PathKey {
 	return PathKey{
-		PathName: root + "/" + key,
+		PathName: key,
 		FileName: key,
 	}
 }
 
-func hashPathTransform(root string, key string) PathKey {
+func hashPathTransform(key string) PathKey {
 	hash := sha1.Sum([]byte(key))
 	hashStr := hex.EncodeToString(hash[:])
 
@@ -32,7 +32,7 @@ func hashPathTransform(root string, key string) PathKey {
 
 	return PathKey{
 		FileName: hashStr,
-		PathName: root + "/" + strings.Join(paths, "/"),
+		PathName: strings.Join(paths, "/"),
 	}
 }
 
@@ -41,6 +41,6 @@ type PathKey struct {
 	FileName string
 }
 
-func (p PathKey) FullPath() string {
-	return fmt.Sprintf("%s/%s", p.PathName, p.FileName)
+func (p PathKey) FullPath(root string) string {
+	return fmt.Sprintf("%s/%s/%s", root, p.PathName, p.FileName)
 }
