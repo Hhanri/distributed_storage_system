@@ -7,7 +7,11 @@ import (
 	"os"
 )
 
+const defaultRootStorage = "../storage"
+
 type StoreOpts struct {
+	// root folder for storage
+	root          string
 	pathTransform pathTransformFunc
 }
 
@@ -16,13 +20,20 @@ type Store struct {
 }
 
 func NewStore(opts StoreOpts) *Store {
+	if opts.pathTransform == nil {
+		opts.pathTransform = defaultPathTransform
+	}
+	if opts.root == "" {
+		opts.root = defaultRootStorage
+	}
+
 	return &Store{
 		StoreOpts: opts,
 	}
 }
 
 func (s *Store) has(key string) bool {
-	pathKey := s.pathTransform(key)
+	pathKey := s.pathTransform(s.root, key)
 
 	file, err := os.Stat(pathKey.FullPath())
 	if err != nil {
@@ -33,7 +44,7 @@ func (s *Store) has(key string) bool {
 }
 
 func (s *Store) delete(key string) error {
-	pathKey := s.pathTransform(key)
+	pathKey := s.pathTransform(s.root, key)
 
 	defer func() {
 		log.Printf("deleted [%s] from disk", pathKey.FileName)
@@ -58,13 +69,13 @@ func (s *Store) read(key string) (io.Reader, error) {
 }
 
 func (s *Store) readStream(key string) (io.ReadCloser, error) {
-	pathKey := s.pathTransform(key)
+	pathKey := s.pathTransform(s.root, key)
 	return os.Open(pathKey.FullPath())
 }
 
 func (s *Store) writeStream(key string, reader io.Reader) error {
 
-	pathKey := s.pathTransform(key)
+	pathKey := s.pathTransform(s.root, key)
 
 	if err := os.MkdirAll(pathKey.PathName, os.ModePerm); err != nil {
 		return err
