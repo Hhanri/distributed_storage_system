@@ -54,7 +54,7 @@ func NewTCPTransport(opts TCPTransportOpts) *TCPTransport {
 func (t *TCPTransport) Dial(addr string) error {
 	conn, err := net.Dial("tcp", addr)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	go t.handleConnection(conn, true)
