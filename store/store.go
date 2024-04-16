@@ -2,6 +2,7 @@ package store
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"log"
 	"os"
@@ -35,12 +36,8 @@ func NewStore(opts StoreOpts) *Store {
 func (s *Store) has(key string) bool {
 	pathKey := s.pathTransform(key)
 
-	file, err := os.Stat(pathKey.FullPath(s.root))
-	if err != nil {
-		return false
-	}
-
-	return file != nil
+	_, err := os.Stat(pathKey.FullPath(s.root))
+	return !errors.Is(err, os.ErrNotExist)
 }
 
 func (s *Store) delete(key string) error {
