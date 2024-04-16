@@ -2,6 +2,7 @@ package store
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"testing"
 )
@@ -26,49 +27,42 @@ func TestStore(t *testing.T) {
 
 	defer tearDown(t, store)
 
-	key := "myImageKey"
+	for i := 0; i < 50; i++ {
 
-	data := []byte("some jpg bytes idk just go with it")
+		key := fmt.Sprintf("myImageKey_%d", i)
 
-	if err := store.writeStream(key, bytes.NewReader(data)); err != nil {
-		t.Error(err)
-	}
+		data := []byte("some jpg bytes idk just go with it")
 
-	if !store.has(key) {
-		t.Errorf("no file found for key: %s", key)
-	}
+		if err := store.writeStream(key, bytes.NewReader(data)); err != nil {
+			t.Error(err)
+		}
 
-	reader, err := store.read(key)
-	if err != nil {
-		t.Error(err)
-	}
+		if !store.has(key) {
+			t.Errorf("no file found for key: %s", key)
+		}
 
-	bytes, err := io.ReadAll(reader)
-	if err != nil {
-		t.Error(err)
-	}
+		reader, err := store.read(key)
+		if err != nil {
+			t.Error(err)
+		}
 
-	if string(bytes) != string(data) {
-		t.Errorf("expected %s\ngot %s", data, bytes)
-	}
-}
+		bytes, err := io.ReadAll(reader)
+		if err != nil {
+			t.Error(err)
+		}
 
-func TestDelete(t *testing.T) {
+		if string(bytes) != string(data) {
+			t.Errorf("expected %s\ngot %s", data, bytes)
+		}
 
-	store := newTestStore()
+		if err := store.delete(key); err != nil {
+			t.Error(err)
+		}
 
-	defer tearDown(t, store)
+		if store.has(key) {
+			t.Errorf("should not have key %s", key)
+		}
 
-	key := "myImageKey"
-
-	data := []byte("some jpg bytes idk just go with it")
-
-	if err := store.writeStream(key, bytes.NewReader(data)); err != nil {
-		t.Error(err)
-	}
-
-	if err := store.delete(key); err != nil {
-		t.Error(err)
 	}
 
 }
