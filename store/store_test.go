@@ -2,7 +2,7 @@ package store
 
 import (
 	"bytes"
-	"io/ioutil"
+	"io"
 	"testing"
 )
 
@@ -26,7 +26,7 @@ func TestStore(t *testing.T) {
 		t.Error(err)
 	}
 
-	bytes, err := ioutil.ReadAll(reader)
+	bytes, err := io.ReadAll(reader)
 	if err != nil {
 		t.Error(err)
 	}
