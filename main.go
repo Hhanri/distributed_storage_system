@@ -2,16 +2,14 @@ package main
 
 import (
 	"log"
-	"time"
 
 	"github.com/Hhanri/distributed_storage_system/p2p"
 	"github.com/Hhanri/distributed_storage_system/store"
 )
 
-func main() {
-
+func makeServer(listenAddr string, nodes []string) *FileServer {
 	tcpOpts := p2p.TCPTransportOpts{
-		ListenAddress: ":3000",
+		ListenAddress: listenAddr,
 		Handshaker:    p2p.NOPHandshaker{},
 		Decoder:       p2p.DefaultDecoder{},
 	}
@@ -19,22 +17,27 @@ func main() {
 
 	fileServerOtps := FileServerOpts{
 		StoreOpts: store.StoreOpts{
-			Root:          store.DefaultRootStorage,
+			Root:          listenAddr + "_network",
 			PathTransform: store.HashPathTransform,
 		},
-		BootstrapNodes: []string{":4000"},
+		BootstrapNodes: nodes,
 
 		Transport: transport,
 	}
 
-	server := NewFileServer(fileServerOtps)
+	return NewFileServer(fileServerOtps)
+}
+
+func main() {
+
+	server1 := makeServer(":3000", []string{})
+	server2 := makeServer(":4000", []string{":3000"})
 
 	go func() {
-		time.Sleep(time.Second * 3)
-		server.Stop()
+		log.Fatal(server1.Start())
 	}()
 
-	if err := server.Start(); err != nil {
+	if err := server2.Start(); err != nil {
 		log.Fatal(err)
 	}
 
