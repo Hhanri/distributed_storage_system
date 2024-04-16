@@ -21,6 +21,10 @@ func TestStore(t *testing.T) {
 		t.Error(err)
 	}
 
+	if !store.has(key) {
+		t.Errorf("no file found for key: %s", key)
+	}
+
 	reader, err := store.read(key)
 	if err != nil {
 		t.Error(err)
