@@ -11,7 +11,7 @@ type pathTransformFunc func(root string, key string) PathKey
 
 var defaultPathTransform = func(root string, key string) PathKey {
 	return PathKey{
-		PathName: key,
+		PathName: root + "/" + key,
 		FileName: key,
 	}
 }
