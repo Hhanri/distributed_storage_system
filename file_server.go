@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/gob"
 	"fmt"
+	"io"
 	"log"
 	"sync"
 
@@ -63,6 +65,17 @@ func (fs *FileServer) loop() {
 		}
 	}
 
+}
+
+func (fs *FileServer) broadcast(p *Payload) error {
+	peers := []io.Writer{}
+	for _, peer := range fs.peers {
+		peers = append(peers, peer)
+	}
+
+	mw := io.MultiWriter(peers...)
+
+	return gob.NewEncoder(mw).Encode(*p)
 }
 
 func (fs *FileServer) Stop() {
