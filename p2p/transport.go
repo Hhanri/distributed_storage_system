@@ -4,9 +4,8 @@ import "net"
 
 // Peer is any remote note
 type Peer interface {
+	net.Conn
 	Send([]byte) error
-	RemoteAddr() net.Addr
-	Close() error
 }
 
 // Transport is anything that handles communication
