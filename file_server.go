@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"sync"
 
 	"github.com/Hhanri/distributed_storage_system/p2p"
 	"github.com/Hhanri/distributed_storage_system/store"
@@ -16,8 +17,11 @@ type FileServerOpts struct {
 
 type FileServer struct {
 	FileServerOpts
-	store *store.Store
 
+	peerslock sync.Mutex
+	peers     map[string]p2p.Peer
+
+	store  *store.Store
 	quitCh chan struct{}
 }
 
@@ -26,7 +30,21 @@ func NewFileServer(opts FileServerOpts) *FileServer {
 		FileServerOpts: opts,
 		store:          store.NewStore(opts.StoreOpts),
 		quitCh:         make(chan struct{}),
+
+		peerslock: sync.Mutex{},
+		peers:     make(map[string]p2p.Peer),
 	}
+}
+
+func (fs *FileServer) OnPeer(peer p2p.Peer) error {
+	fs.peerslock.Lock()
+	defer fs.peerslock.Unlock()
+
+	fs.peers[peer.RemoteAddr().String()] = peer
+
+	log.Printf("connected with remote %s", peer.RemoteAddr())
+
+	return nil
 }
 
 func (fs *FileServer) loop() {

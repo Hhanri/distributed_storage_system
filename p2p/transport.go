@@ -1,7 +1,10 @@
 package p2p
 
+import "net"
+
 // Peer is any remote note
 type Peer interface {
+	RemoteAddr() net.Addr
 	Close() error
 }
 

@@ -25,7 +25,10 @@ func makeServer(listenAddr string, nodes []string) *FileServer {
 		Transport: transport,
 	}
 
-	return NewFileServer(fileServerOtps)
+	server := NewFileServer(fileServerOtps)
+	transport.OnPeer = server.OnPeer
+
+	return server
 }
 
 func main() {
