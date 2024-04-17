@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/gob"
 	"fmt"
 	"io"
@@ -59,7 +60,14 @@ func (fs *FileServer) loop() {
 	for {
 		select {
 		case msg := <-fs.Transport.Consume():
-			fmt.Println(msg)
+			m := &Message{}
+			if err := gob.NewDecoder(bytes.NewReader(msg.Payload)).Decode(m); err != nil {
+				log.Println(err)
+			}
+
+			if err := fs.handleMessage(m); err != nil {
+				log.Println(err)
+			}
 		case <-fs.quitCh:
 			return
 		}
@@ -67,7 +75,12 @@ func (fs *FileServer) loop() {
 
 }
 
-func (fs *FileServer) broadcast(p *Payload) error {
+func (fs *FileServer) handleMessage(msg *Message) error {
+	fmt.Printf("Received data: %+v\n", msg.Payload)
+	return nil
+}
+
+func (fs *FileServer) broadcast(p *Message) error {
 	peers := []io.Writer{}
 	for _, peer := range fs.peers {
 		peers = append(peers, peer)
@@ -76,6 +89,25 @@ func (fs *FileServer) broadcast(p *Payload) error {
 	mw := io.MultiWriter(peers...)
 
 	return gob.NewEncoder(mw).Encode(*p)
+}
+
+func (fs *FileServer) StoreData(key string, reader io.Reader) error {
+	buff := new(bytes.Buffer)
+	tee := io.TeeReader(reader, buff)
+
+	if err := fs.store.Write(key, tee); err != nil {
+		return err
+	}
+
+	payload := &MessageData{
+		Key:  key,
+		Data: buff.Bytes(),
+	}
+
+	return fs.broadcast(&Message{
+		From:    "TODO",
+		Payload: *payload,
+	})
 }
 
 func (fs *FileServer) Stop() {
