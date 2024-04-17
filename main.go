@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"log"
+	"time"
 
 	"github.com/Hhanri/distributed_storage_system/p2p"
 	"github.com/Hhanri/distributed_storage_system/store"
@@ -40,8 +42,16 @@ func main() {
 		log.Fatal(server1.Start())
 	}()
 
-	if err := server2.Start(); err != nil {
-		log.Fatal(err)
-	}
+	time.Sleep(time.Second * 3)
 
+	go func() {
+		log.Fatal(server2.Start())
+	}()
+
+	time.Sleep(time.Second * 3)
+
+	data := bytes.NewReader([]byte("My big data file here!"))
+	server2.StoreData("myprivatekey", data)
+
+	select {}
 }
