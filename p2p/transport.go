@@ -4,6 +4,7 @@ import "net"
 
 // Peer is any remote note
 type Peer interface {
+	Send([]byte) error
 	RemoteAddr() net.Addr
 	Close() error
 }

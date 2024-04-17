@@ -24,6 +24,11 @@ func NewTCPPeer(conn net.Conn, outbound bool) *TCPPeer {
 	}
 }
 
+func (p *TCPPeer) Send(data []byte) error {
+	_, err := p.conn.Write(data)
+	return err
+}
+
 func (p *TCPPeer) RemoteAddr() net.Addr {
 	return p.conn.RemoteAddr()
 }
