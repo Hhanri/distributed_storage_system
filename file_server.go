@@ -102,7 +102,7 @@ func (fs *FileServer) handleMessageStoreFile(from string, msg *MessageStoreFile)
 	return nil
 }
 
-func (fs *FileServer) broadcast(p *Message) error {
+func (fs *FileServer) stream(p *Message) error {
 	peers := []io.Writer{}
 	for _, peer := range fs.peers {
 		peers = append(peers, peer)
@@ -111,6 +111,20 @@ func (fs *FileServer) broadcast(p *Message) error {
 	mw := io.MultiWriter(peers...)
 
 	return gob.NewEncoder(mw).Encode(*p)
+}
+
+func (fs *FileServer) broadcast(msg *Message) error {
+	msgBuff := new(bytes.Buffer)
+	if err := gob.NewEncoder(msgBuff).Encode(msg); err != nil {
+		return err
+	}
+
+	for _, peer := range fs.peers {
+		if err := peer.Send(msgBuff.Bytes()); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (fs *FileServer) StoreData(key string, reader io.Reader) error {
@@ -130,15 +144,8 @@ func (fs *FileServer) StoreData(key string, reader io.Reader) error {
 		},
 	}
 
-	msgBuff := new(bytes.Buffer)
-	if err := gob.NewEncoder(msgBuff).Encode(msg); err != nil {
+	if err := fs.broadcast(&msg); err != nil {
 		return err
-	}
-
-	for _, peer := range fs.peers {
-		if err := peer.Send(msgBuff.Bytes()); err != nil {
-			return err
-		}
 	}
 
 	time.Sleep(time.Millisecond * 5)
