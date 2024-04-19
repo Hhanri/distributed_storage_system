@@ -98,5 +98,7 @@ func (s *Store) writeStream(key string, reader io.Reader) (int64, error) {
 		return 0, err
 	}
 
+	log.Printf("Written (%d) bytes to disk: %s", n, fullPath)
+
 	return n, nil
 }
