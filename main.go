@@ -19,7 +19,7 @@ func makeServer(listenAddr string, nodes []string) *FileServer {
 
 	fileServerOtps := FileServerOpts{
 		StoreOpts: store.StoreOpts{
-			Root:          listenAddr + "_network",
+			Root:          "./storage_content/" + listenAddr + "_network",
 			PathTransform: store.HashPathTransform,
 		},
 		BootstrapNodes: nodes,
