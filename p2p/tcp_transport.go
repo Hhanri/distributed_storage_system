@@ -15,12 +15,15 @@ type TCPPeer struct {
 	// if server dials and retrieves a conn => outbound == true
 	// if server accepts and retrieves a conn => outbound == false
 	outbound bool
+
+	Wg *sync.WaitGroup
 }
 
 func NewTCPPeer(conn net.Conn, outbound bool) *TCPPeer {
 	return &TCPPeer{
 		Conn:     conn,
 		outbound: outbound,
+		Wg:       &sync.WaitGroup{},
 	}
 }
 
@@ -130,7 +133,11 @@ func (t *TCPTransport) handleConnection(conn net.Conn, outbound bool) {
 		}
 
 		rpc.From = conn.RemoteAddr()
+		peer.Wg.Add(1)
+		fmt.Println("Waiting till stream is done")
 		t.rpcCh <- rpc
+		peer.Wg.Wait()
+		fmt.Println("Stream done")
 	}
 
 }
