@@ -74,31 +74,29 @@ func (s *Store) readStream(key string) (io.ReadCloser, error) {
 	return os.Open(pathKey.FullPath(s.Root))
 }
 
-func (s *Store) Write(key string, reader io.Reader) error {
+func (s *Store) Write(key string, reader io.Reader) (int64, error) {
 	return s.writeStream(key, reader)
 }
 
-func (s *Store) writeStream(key string, reader io.Reader) error {
+func (s *Store) writeStream(key string, reader io.Reader) (int64, error) {
 
 	pathKey := s.PathTransform(key)
 
 	if err := os.MkdirAll(pathKey.DirPath(s.Root), os.ModePerm); err != nil {
-		return err
+		return 0, err
 	}
 
 	fullPath := pathKey.FullPath(s.Root)
 
 	file, err := os.Create(fullPath)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	n, err := io.Copy(file, reader)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
-	log.Printf("Written (%d) bytes to disk: %s", n, fullPath)
-
-	return nil
+	return n, nil
 }
