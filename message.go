@@ -10,3 +10,7 @@ type MessageStoreFile struct {
 	Size int64
 	Data []byte
 }
+
+type MessageGetFile struct {
+	Key string
+}
