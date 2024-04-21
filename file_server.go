@@ -82,7 +82,33 @@ func (fs *FileServer) handleMessage(from string, msg *Message) error {
 	switch v := msg.Payload.(type) {
 	case MessageStoreFile:
 		return fs.handleMessageStoreFile(from, &v)
+	case MessageGetFile:
+		return fs.handleMessageGetFile(from, &v)
 	}
+
+	return nil
+}
+
+func (fs *FileServer) handleMessageGetFile(from string, msg *MessageGetFile) error {
+	if !fs.store.Has(msg.Key) {
+		return fmt.Errorf("File (%s) not found on disk\n", msg.Key)
+	}
+	r, err := fs.store.Read(msg.Key)
+	if err != nil {
+		return err
+	}
+
+	peer, ok := fs.peers[from]
+	if !ok {
+		return fmt.Errorf("peer %s not found\n", from)
+	}
+
+	n, err := io.Copy(peer, r)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("written %d bytes over the network to %s\n", n, from)
 
 	return nil
 }
@@ -160,6 +186,40 @@ func (fs *FileServer) StoreData(key string, reader io.Reader) error {
 	return nil
 }
 
+func (fs *FileServer) GetData(key string) (io.Reader, error) {
+	if fs.store.Has(key) {
+		return fs.store.Read(key)
+	}
+
+	fmt.Printf("File (%s) not found locally, fetching from network\n", key)
+
+	msg := Message{
+		Payload: MessageGetFile{
+			Key: key,
+		},
+	}
+
+	if err := fs.broadcast(&msg); err != nil {
+		return nil, err
+	}
+
+	for _, peer := range fs.peers {
+		fileBuffer := new(bytes.Buffer)
+		n, err := io.Copy(fileBuffer, peer)
+
+		if err != nil {
+			return nil, err
+		}
+
+		fmt.Printf("received %d bytes over the nentwork\n", n)
+		fmt.Println(fileBuffer.String())
+	}
+
+	select {}
+
+	return nil, nil
+}
+
 func (fs *FileServer) Stop() {
 	close(fs.quitCh)
 }
@@ -187,4 +247,5 @@ func (fs *FileServer) bootstrapNetwork() {
 
 func init() {
 	gob.Register(MessageStoreFile{})
+	gob.Register(MessageGetFile{})
 }
