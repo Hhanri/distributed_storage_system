@@ -120,6 +120,7 @@ func (fs *FileServer) handleMessageStoreFile(from string, msg *MessageStoreFile)
 	if !ok {
 		return fmt.Errorf("peer (%s) could no be found", from)
 	}
+	fmt.Printf("[%s]:\n", fs.Transport.Addr())
 	_, err := fs.store.Write(msg.Key, io.LimitReader(peer, msg.Size))
 	if err != nil {
 		return err
@@ -146,6 +147,7 @@ func (fs *FileServer) broadcast(msg *Message) error {
 	}
 
 	for _, peer := range fs.peers {
+		peer.Send([]byte{p2p.IncomingMessage})
 		if err := peer.Send(msgBuff.Bytes()); err != nil {
 			return err
 		}
@@ -177,6 +179,7 @@ func (fs *FileServer) StoreData(key string, reader io.Reader) error {
 	time.Sleep(time.Millisecond * 5)
 
 	for _, peer := range fs.peers {
+		peer.Send([]byte{p2p.IncomingStream})
 		_, err := io.Copy(peer, fileBuff)
 		if err != nil {
 			return err
