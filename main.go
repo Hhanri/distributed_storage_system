@@ -1,8 +1,8 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
-	"io"
 	"log"
 	"time"
 
@@ -43,26 +43,29 @@ func main() {
 		log.Fatal(server1.Start())
 	}()
 
-	time.Sleep(time.Second * 3)
+	time.Sleep(time.Second * 2)
 
 	go func() {
 		log.Fatal(server2.Start())
 	}()
 
-	time.Sleep(time.Second * 3)
+	time.Sleep(time.Second * 2)
 
-	//data := bytes.NewReader([]byte("My big data file here!"))
-	//server2.StoreData("myprivatekey", data)
-
-	reader, err := server2.GetData("myprivatekey")
-	if err != nil {
-		log.Fatal(err)
-	}
-	bytes, err := io.ReadAll(reader)
-	if err != nil {
-		log.Fatal(err)
+	for i := 0; i < 10; i++ {
+		data := bytes.NewReader([]byte("My big data file here!"))
+		server2.StoreData(fmt.Sprintf("myprivatekey_%d", i), data)
+		time.Sleep(time.Millisecond * 5)
 	}
 
-	fmt.Println(string(bytes))
+	// reader, err := server2.GetData("myprivatekey")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// bytes, err := io.ReadAll(reader)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+
+	// fmt.Println(string(bytes))
 	select {}
 }
