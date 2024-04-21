@@ -115,7 +115,7 @@ func (fs *FileServer) handleMessageGetFile(from string, msg *MessageGetFile) err
 
 func (fs *FileServer) handleMessageStoreFile(from string, msg *MessageStoreFile) error {
 	peer, ok := fs.peers[from]
-	defer peer.(*p2p.TCPPeer).Wg.Done()
+	defer peer.CloseStream()
 
 	if !ok {
 		return fmt.Errorf("peer (%s) could no be found", from)

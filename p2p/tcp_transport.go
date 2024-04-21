@@ -16,15 +16,19 @@ type TCPPeer struct {
 	// if server accepts and retrieves a conn => outbound == false
 	outbound bool
 
-	Wg *sync.WaitGroup
+	wg *sync.WaitGroup
 }
 
 func NewTCPPeer(conn net.Conn, outbound bool) *TCPPeer {
 	return &TCPPeer{
 		Conn:     conn,
 		outbound: outbound,
-		Wg:       &sync.WaitGroup{},
+		wg:       &sync.WaitGroup{},
 	}
+}
+
+func (p *TCPPeer) CloseStream() {
+	p.wg.Done()
 }
 
 func (p *TCPPeer) Send(data []byte) error {
@@ -140,8 +144,8 @@ func (t *TCPTransport) handleConnection(conn net.Conn, outbound bool) {
 
 		if rpc.Stream {
 			fmt.Printf("[%s] Waiting till stream is done...\n", rpc.From)
-			peer.Wg.Add(1)
-			peer.Wg.Wait()
+			peer.wg.Add(1)
+			peer.wg.Wait()
 			fmt.Printf("[%s] Stream closed\n", rpc.From)
 			continue
 		}
