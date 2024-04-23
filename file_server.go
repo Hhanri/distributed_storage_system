@@ -91,8 +91,11 @@ func (fs *FileServer) handleMessage(from string, msg *Message) error {
 
 func (fs *FileServer) handleMessageGetFile(from string, msg *MessageGetFile) error {
 	if !fs.store.Has(msg.Key) {
-		return fmt.Errorf("File (%s) not found on disk\n", msg.Key)
+		return fmt.Errorf("[%s] Needs to serve file (%s) but was not found on disk\n", fs.Transport.Addr(), msg.Key)
 	}
+
+	fmt.Printf("[%s] Serving file (%s) over the network\n", fs.Transport.Addr(), msg.Key)
+
 	r, err := fs.store.Read(msg.Key)
 	if err != nil {
 		return err
@@ -103,12 +106,14 @@ func (fs *FileServer) handleMessageGetFile(from string, msg *MessageGetFile) err
 		return fmt.Errorf("peer %s not found\n", from)
 	}
 
+	peer.Send([]byte{p2p.IncomingStream})
+
 	n, err := io.Copy(peer, r)
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("written %d bytes over the network to %s\n", n, from)
+	fmt.Printf("[%s] Written %d bytes over the network to %s\n", fs.Transport.Addr(), n, from)
 
 	return nil
 }
@@ -191,10 +196,11 @@ func (fs *FileServer) StoreData(key string, reader io.Reader) error {
 
 func (fs *FileServer) GetData(key string) (io.Reader, error) {
 	if fs.store.Has(key) {
+		fmt.Printf("[%s] Serving file (%s) from local disk\n", fs.Transport.Addr(), key)
 		return fs.store.Read(key)
 	}
 
-	fmt.Printf("File (%s) not found locally, fetching from network\n", key)
+	fmt.Printf("[%s] File (%s) not found locally, fetching from network\n", fs.Transport.Addr(), key)
 
 	msg := Message{
 		Payload: MessageGetFile{
@@ -206,21 +212,19 @@ func (fs *FileServer) GetData(key string) (io.Reader, error) {
 		return nil, err
 	}
 
-	for _, peer := range fs.peers {
-		fileBuffer := new(bytes.Buffer)
-		n, err := io.Copy(fileBuffer, peer)
+	time.Sleep(time.Millisecond * 5)
 
+	for _, peer := range fs.peers {
+		n, err := fs.store.Write(key, peer)
 		if err != nil {
 			return nil, err
 		}
 
-		fmt.Printf("received %d bytes over the nentwork\n", n)
-		fmt.Println(fileBuffer.String())
+		fmt.Printf("[%s] Received %d bytes over the nentwork from [%s]\n", fs.Transport.Addr(), n, peer.RemoteAddr())
+		peer.CloseStream()
 	}
 
-	select {}
-
-	return nil, nil
+	return fs.store.Read(key)
 }
 
 func (fs *FileServer) Stop() {
