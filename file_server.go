@@ -136,10 +136,11 @@ func (fs *FileServer) handleMessageStoreFile(from string, msg *MessageStoreFile)
 		return fmt.Errorf("peer (%s) could no be found", from)
 	}
 	fmt.Printf("[%s]:\n", fs.Transport.Addr())
-	_, err := fs.store.Write(msg.Key, io.LimitReader(peer, msg.Size))
+	size, err := fs.store.Write(msg.Key, io.LimitReader(peer, msg.Size))
 	if err != nil {
 		return err
 	}
+	fs.store.LogWrite(size, fs.Transport.Addr())
 
 	return nil
 }
@@ -179,6 +180,7 @@ func (fs *FileServer) StoreData(key string, reader io.Reader) error {
 	if err != nil {
 		return err
 	}
+	fs.store.LogWrite(size, fs.Transport.Addr())
 
 	msg := Message{
 		Payload: MessageStoreFile{

@@ -97,6 +97,10 @@ func (s *Store) writeStream(key string, reader io.Reader) (int64, error) {
 
 }
 
+func (s *Store) LogWrite(n int64, addr string) {
+	log.Printf("Written (%d) bytes to: %s", n, addr)
+}
+
 func (s *Store) openFileForWriting(key string, reader io.Reader) (*os.File, error) {
 	pathKey := s.PathTransform(key)
 
