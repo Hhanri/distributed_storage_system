@@ -233,8 +233,7 @@ func (fs *FileServer) GetData(key string) (io.Reader, error) {
 
 		var fileSize int64
 		binary.Read(peer, binary.LittleEndian, &fileSize)
-
-		n, err := fs.store.Write(key, io.LimitReader(peer, fileSize))
+		n, err := fs.store.WriteDecrypt(fs.EncryptionKey, key, io.LimitReader(peer, fileSize))
 		if err != nil {
 			return nil, err
 		}
