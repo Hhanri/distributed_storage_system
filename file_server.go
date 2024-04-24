@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/binary"
 	"encoding/gob"
 	"fmt"
 	"io"
@@ -96,7 +97,7 @@ func (fs *FileServer) handleMessageGetFile(from string, msg *MessageGetFile) err
 
 	fmt.Printf("[%s] Serving file (%s) over the network\n", fs.Transport.Addr(), msg.Key)
 
-	r, err := fs.store.Read(msg.Key)
+	fileSize, r, err := fs.store.Read(msg.Key)
 	if err != nil {
 		return err
 	}
@@ -106,8 +107,11 @@ func (fs *FileServer) handleMessageGetFile(from string, msg *MessageGetFile) err
 		return fmt.Errorf("peer %s not found\n", from)
 	}
 
-	peer.Send([]byte{p2p.IncomingStream})
+	// First we send the "incomingStream" byte to the peer
+	// then we can send the file size as a int64
 
+	peer.Send([]byte{p2p.IncomingStream})
+	binary.Write(peer, binary.LittleEndian, fileSize)
 	n, err := io.Copy(peer, r)
 	if err != nil {
 		return err
@@ -197,7 +201,8 @@ func (fs *FileServer) StoreData(key string, reader io.Reader) error {
 func (fs *FileServer) GetData(key string) (io.Reader, error) {
 	if fs.store.Has(key) {
 		fmt.Printf("[%s] Serving file (%s) from local disk\n", fs.Transport.Addr(), key)
-		return fs.store.Read(key)
+		_, r, err := fs.store.Read(key)
+		return r, err
 	}
 
 	fmt.Printf("[%s] File (%s) not found locally, fetching from network\n", fs.Transport.Addr(), key)
@@ -215,7 +220,14 @@ func (fs *FileServer) GetData(key string) (io.Reader, error) {
 	time.Sleep(time.Millisecond * 5)
 
 	for _, peer := range fs.peers {
-		n, err := fs.store.Write(key, peer)
+
+		// First read the file size so we can limit the amount of bytes to read from the connection
+		// so it will not keep hanging
+
+		var fileSize int64
+		binary.Read(peer, binary.LittleEndian, &fileSize)
+
+		n, err := fs.store.Write(key, io.LimitReader(peer, fileSize))
 		if err != nil {
 			return nil, err
 		}
@@ -224,7 +236,8 @@ func (fs *FileServer) GetData(key string) (io.Reader, error) {
 		peer.CloseStream()
 	}
 
-	return fs.store.Read(key)
+	_, r, err := fs.store.Read(key)
+	return r, err
 }
 
 func (fs *FileServer) Stop() {

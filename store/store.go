@@ -54,10 +54,10 @@ func (s *Store) clear() error {
 	return os.RemoveAll(s.Root)
 }
 
-func (s *Store) Read(key string) (io.Reader, error) {
-	f, err := s.readStream(key)
+func (s *Store) Read(key string) (int64, io.Reader, error) {
+	n, f, err := s.readStream(key)
 	if err != nil {
-		return nil, err
+		return n, nil, err
 	}
 
 	defer f.Close()
@@ -66,12 +66,21 @@ func (s *Store) Read(key string) (io.Reader, error) {
 
 	_, err = io.Copy(buff, f)
 
-	return buff, err
+	return n, buff, err
 }
 
-func (s *Store) readStream(key string) (io.ReadCloser, error) {
+func (s *Store) readStream(key string) (int64, io.ReadCloser, error) {
 	pathKey := s.PathTransform(key)
-	return os.Open(pathKey.FullPath(s.Root))
+	file, err := os.Open(pathKey.FullPath(s.Root))
+	if err != nil {
+		return 0, nil, err
+	}
+
+	fi, err := file.Stat()
+	if err != nil {
+		return 0, nil, err
+	}
+	return fi.Size(), file, nil
 }
 
 func (s *Store) Write(key string, reader io.Reader) (int64, error) {
