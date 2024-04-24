@@ -13,9 +13,13 @@ func TestCopyEncryptDecrypt(t *testing.T) {
 	dst := new(bytes.Buffer)
 	key := NewEncryptionKey()
 
-	_, err := CopyEncrypt(key, src, dst)
+	ne, err := CopyEncrypt(key, src, dst)
 	if err != nil {
 		t.Error(err)
+	}
+
+	if len(dst.String()) != ne {
+		t.Errorf("Returned bytes (%d) not the same as length of written encrypted dst (%d)\n", ne, len(dst.String()))
 	}
 
 	fmt.Printf("Encrypted: %s\n", dst.String())
@@ -30,5 +34,4 @@ func TestCopyEncryptDecrypt(t *testing.T) {
 	if output.String() != payload {
 		t.Errorf("Decryption failed")
 	}
-
 }
