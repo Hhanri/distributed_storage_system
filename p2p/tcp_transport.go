@@ -15,13 +15,20 @@ type TCPPeer struct {
 	// if server dials and retrieves a conn => outbound == true
 	// if server accepts and retrieves a conn => outbound == false
 	outbound bool
+
+	wg *sync.WaitGroup
 }
 
 func NewTCPPeer(conn net.Conn, outbound bool) *TCPPeer {
 	return &TCPPeer{
 		Conn:     conn,
 		outbound: outbound,
+		wg:       &sync.WaitGroup{},
 	}
+}
+
+func (p *TCPPeer) CloseStream() {
+	p.wg.Done()
 }
 
 func (p *TCPPeer) Send(data []byte) error {
@@ -50,6 +57,10 @@ func NewTCPTransport(opts TCPTransportOpts) *TCPTransport {
 		TCPTransportOpts: opts,
 		rpcCh:            make(chan RPC),
 	}
+}
+
+func (t *TCPTransport) Addr() string {
+	return t.ListenAddress
 }
 
 func (t *TCPTransport) Dial(addr string) error {
@@ -122,14 +133,23 @@ func (t *TCPTransport) handleConnection(conn net.Conn, outbound bool) {
 		}
 	}
 
-	rpc := RPC{}
 	for {
+		rpc := RPC{}
 		err = t.Decoder.Decode(conn, &rpc)
 		if err != nil {
 			return
 		}
 
 		rpc.From = conn.RemoteAddr()
+
+		if rpc.Stream {
+			fmt.Printf("[%s] Waiting till stream is done...\n", rpc.From)
+			peer.wg.Add(1)
+			peer.wg.Wait()
+			fmt.Printf("[%s] Stream closed\n", rpc.From)
+			continue
+		}
+
 		t.rpcCh <- rpc
 	}
 

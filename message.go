@@ -2,10 +2,14 @@ package main
 
 type Message struct {
 	From    string
-	Payload MessageData
+	Payload any
 }
 
-type MessageData struct {
+type MessageStoreFile struct {
 	Key  string
-	Data []byte
+	Size int64
+}
+
+type MessageGetFile struct {
+	Key string
 }

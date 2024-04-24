@@ -33,7 +33,7 @@ func TestStore(t *testing.T) {
 
 		data := []byte("some jpg bytes idk just go with it")
 
-		if err := store.Write(key, bytes.NewReader(data)); err != nil {
+		if _, err := store.Write(key, bytes.NewReader(data)); err != nil {
 			t.Error(err)
 		}
 
@@ -41,7 +41,7 @@ func TestStore(t *testing.T) {
 			t.Errorf("no file found for key: %s", key)
 		}
 
-		reader, err := store.Read(key)
+		_, reader, err := store.Read(key)
 		if err != nil {
 			t.Error(err)
 		}

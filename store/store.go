@@ -1,7 +1,6 @@
 package store
 
 import (
-	"bytes"
 	"errors"
 	"io"
 	"log"
@@ -54,51 +53,49 @@ func (s *Store) clear() error {
 	return os.RemoveAll(s.Root)
 }
 
-func (s *Store) Read(key string) (io.Reader, error) {
-	f, err := s.readStream(key)
+func (s *Store) Read(key string) (int64, io.Reader, error) {
+	return s.readStream(key)
+}
+
+func (s *Store) readStream(key string) (int64, io.ReadCloser, error) {
+	pathKey := s.PathTransform(key)
+	file, err := os.Open(pathKey.FullPath(s.Root))
 	if err != nil {
-		return nil, err
+		return 0, nil, err
 	}
 
-	defer f.Close()
-
-	buff := new(bytes.Buffer)
-
-	_, err = io.Copy(buff, f)
-
-	return buff, err
+	fi, err := file.Stat()
+	if err != nil {
+		return 0, nil, err
+	}
+	return fi.Size(), file, nil
 }
 
-func (s *Store) readStream(key string) (io.ReadCloser, error) {
-	pathKey := s.PathTransform(key)
-	return os.Open(pathKey.FullPath(s.Root))
-}
-
-func (s *Store) Write(key string, reader io.Reader) error {
+func (s *Store) Write(key string, reader io.Reader) (int64, error) {
 	return s.writeStream(key, reader)
 }
 
-func (s *Store) writeStream(key string, reader io.Reader) error {
+func (s *Store) writeStream(key string, reader io.Reader) (int64, error) {
 
 	pathKey := s.PathTransform(key)
 
 	if err := os.MkdirAll(pathKey.DirPath(s.Root), os.ModePerm); err != nil {
-		return err
+		return 0, err
 	}
 
 	fullPath := pathKey.FullPath(s.Root)
 
 	file, err := os.Create(fullPath)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	n, err := io.Copy(file, reader)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	log.Printf("Written (%d) bytes to disk: %s", n, fullPath)
 
-	return nil
+	return n, nil
 }

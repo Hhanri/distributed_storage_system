@@ -1,7 +1,8 @@
 package main
 
 import (
-	"bytes"
+	"fmt"
+	"io"
 	"log"
 	"time"
 
@@ -19,7 +20,7 @@ func makeServer(listenAddr string, nodes []string) *FileServer {
 
 	fileServerOtps := FileServerOpts{
 		StoreOpts: store.StoreOpts{
-			Root:          listenAddr + "_network",
+			Root:          "./storage_content/" + listenAddr + "_network",
 			PathTransform: store.HashPathTransform,
 		},
 		BootstrapNodes: nodes,
@@ -42,16 +43,28 @@ func main() {
 		log.Fatal(server1.Start())
 	}()
 
-	time.Sleep(time.Second * 3)
+	time.Sleep(time.Second * 2)
 
 	go func() {
 		log.Fatal(server2.Start())
 	}()
 
-	time.Sleep(time.Second * 3)
+	time.Sleep(time.Second * 2)
 
-	data := bytes.NewReader([]byte("My big data file here!"))
-	server2.StoreData("myprivatekey", data)
+	// data := bytes.NewReader([]byte("My big data file here!"))
+	key := "myprivatekey"
+	// server2.StoreData(key, data)
+	// time.Sleep(time.Millisecond * 5)
 
-	select {}
+	reader, err := server2.GetData(key)
+	if err != nil {
+		log.Fatal(err)
+	}
+	bytes, err := io.ReadAll(reader)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(string(bytes))
+
 }
