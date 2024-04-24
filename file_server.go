@@ -102,6 +102,10 @@ func (fs *FileServer) handleMessageGetFile(from string, msg *MessageGetFile) err
 		return err
 	}
 
+	if rc, ok := r.(io.ReadCloser); ok {
+		defer rc.Close()
+	}
+
 	peer, ok := fs.peers[from]
 	if !ok {
 		return fmt.Errorf("peer %s not found\n", from)

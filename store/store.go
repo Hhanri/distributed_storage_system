@@ -1,7 +1,6 @@
 package store
 
 import (
-	"bytes"
 	"errors"
 	"io"
 	"log"
@@ -55,18 +54,7 @@ func (s *Store) clear() error {
 }
 
 func (s *Store) Read(key string) (int64, io.Reader, error) {
-	n, f, err := s.readStream(key)
-	if err != nil {
-		return n, nil, err
-	}
-
-	defer f.Close()
-
-	buff := new(bytes.Buffer)
-
-	_, err = io.Copy(buff, f)
-
-	return n, buff, err
+	return s.readStream(key)
 }
 
 func (s *Store) readStream(key string) (int64, io.ReadCloser, error) {
