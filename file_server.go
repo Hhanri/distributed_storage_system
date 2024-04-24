@@ -195,13 +195,17 @@ func (fs *FileServer) StoreData(key string, reader io.Reader) error {
 
 	time.Sleep(time.Millisecond * 5)
 
+	peers := []io.Writer{}
 	for _, peer := range fs.peers {
-		peer.Send([]byte{p2p.IncomingStream})
+		peers = append(peers, peer)
+	}
 
-		_, err := crypto.CopyEncrypt(fs.EncryptionKey, fileBuff, peer)
-		if err != nil {
-			return err
-		}
+	mw := io.MultiWriter(peers...)
+	mw.Write([]byte{p2p.IncomingStream})
+
+	_, err = crypto.CopyEncrypt(fs.EncryptionKey, fileBuff, mw)
+	if err != nil {
+		return err
 	}
 
 	return nil
