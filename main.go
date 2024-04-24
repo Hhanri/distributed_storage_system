@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/Hhanri/distributed_storage_system/crypto"
 	"github.com/Hhanri/distributed_storage_system/p2p"
 	"github.com/Hhanri/distributed_storage_system/store"
 )
@@ -19,6 +20,7 @@ func makeServer(listenAddr string, nodes []string) *FileServer {
 	transport := p2p.NewTCPTransport(tcpOpts)
 
 	fileServerOtps := FileServerOpts{
+		EncryptionKey: crypto.NewEncryptionKey(),
 		StoreOpts: store.StoreOpts{
 			Root:          "./storage_content/" + listenAddr + "_network",
 			PathTransform: store.HashPathTransform,

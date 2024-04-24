@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Hhanri/distributed_storage_system/crypto"
 	"github.com/Hhanri/distributed_storage_system/p2p"
 	"github.com/Hhanri/distributed_storage_system/store"
 )
@@ -18,6 +19,7 @@ type FileServerOpts struct {
 	store.StoreOpts
 	Transport      p2p.Transport
 	BootstrapNodes []string
+	EncryptionKey  []byte
 }
 
 type FileServer struct {
@@ -181,7 +183,7 @@ func (fs *FileServer) StoreData(key string, reader io.Reader) error {
 	msg := Message{
 		Payload: MessageStoreFile{
 			Key:  key,
-			Size: size,
+			Size: size + 16,
 		},
 	}
 
@@ -193,7 +195,8 @@ func (fs *FileServer) StoreData(key string, reader io.Reader) error {
 
 	for _, peer := range fs.peers {
 		peer.Send([]byte{p2p.IncomingStream})
-		_, err := io.Copy(peer, fileBuff)
+
+		_, err := crypto.CopyEncrypt(fs.EncryptionKey, fileBuff, peer)
 		if err != nil {
 			return err
 		}
