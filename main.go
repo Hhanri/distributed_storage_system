@@ -58,7 +58,7 @@ func main() {
 	key := "myprivatekey"
 	server2.StoreData(key, data)
 	time.Sleep(time.Millisecond * 5)
-	server2.store.Delete(key)
+	server2.store.Delete(server2.ID, key)
 
 	reader, err := server2.GetData(key)
 	if err != nil {

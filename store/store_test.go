@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"testing"
+
+	"github.com/Hhanri/distributed_storage_system/crypto"
 )
 
 func newTestStore() *Store {
@@ -23,6 +25,8 @@ func tearDown(t *testing.T, store *Store) {
 
 func TestStore(t *testing.T) {
 
+	id := crypto.GenerateID()
+
 	store := newTestStore()
 
 	defer tearDown(t, store)
@@ -33,15 +37,15 @@ func TestStore(t *testing.T) {
 
 		data := []byte("some jpg bytes idk just go with it")
 
-		if _, err := store.Write(key, bytes.NewReader(data)); err != nil {
+		if _, err := store.Write(id, key, bytes.NewReader(data)); err != nil {
 			t.Error(err)
 		}
 
-		if !store.Has(key) {
+		if !store.Has(id, key) {
 			t.Errorf("no file found for key: %s", key)
 		}
 
-		_, reader, err := store.Read(key)
+		_, reader, err := store.Read(id, key)
 		if err != nil {
 			t.Error(err)
 		}
@@ -55,11 +59,11 @@ func TestStore(t *testing.T) {
 			t.Errorf("expected %s\ngot %s", data, bytes)
 		}
 
-		if err := store.Delete(key); err != nil {
+		if err := store.Delete(id, key); err != nil {
 			t.Error(err)
 		}
 
-		if store.Has(key) {
+		if store.Has(id, key) {
 			t.Errorf("should not have key %s", key)
 		}
 

@@ -41,10 +41,10 @@ type PathKey struct {
 	FileName string
 }
 
-func (p PathKey) FullPath(root string) string {
-	return fmt.Sprintf("%s/%s/%s", root, p.PathName, p.FileName)
+func (p PathKey) FullPath(root string, id string) string {
+	return fmt.Sprintf("%s/%s/%s/%s", root, id, p.PathName, p.FileName)
 }
 
-func (p PathKey) DirPath(root string) string {
-	return fmt.Sprintf("%s/%s", root, p.PathName)
+func (p PathKey) DirPath(root string, id string) string {
+	return fmt.Sprintf("%s/%s/%s", root, id, p.PathName)
 }

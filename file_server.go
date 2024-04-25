@@ -20,6 +20,11 @@ type FileServerOpts struct {
 	Transport      p2p.Transport
 	BootstrapNodes []string
 	EncryptionKey  []byte
+
+	// ID of the owner of the server
+	// which will be used to store all files at that location
+	// so we can sync all the files if needed
+	ID string
 }
 
 type FileServer struct {
@@ -33,6 +38,10 @@ type FileServer struct {
 }
 
 func NewFileServer(opts FileServerOpts) *FileServer {
+	if opts.ID == "" {
+		opts.ID = crypto.GenerateID()
+	}
+
 	return &FileServer{
 		FileServerOpts: opts,
 		store:          store.NewStore(opts.StoreOpts),
@@ -93,13 +102,13 @@ func (fs *FileServer) handleMessage(from string, msg *Message) error {
 }
 
 func (fs *FileServer) handleMessageGetFile(from string, msg *MessageGetFile) error {
-	if !fs.store.Has(msg.Key) {
+	if !fs.store.Has(msg.ID, msg.Key) {
 		return fmt.Errorf("[%s] Needs to serve file (%s) but was not found on disk\n", fs.Transport.Addr(), msg.Key)
 	}
 
 	fmt.Printf("[%s] Serving file (%s) over the network\n", fs.Transport.Addr(), msg.Key)
 
-	fileSize, r, err := fs.store.Read(msg.Key)
+	fileSize, r, err := fs.store.Read(msg.ID, msg.Key)
 	if err != nil {
 		return err
 	}
@@ -136,7 +145,7 @@ func (fs *FileServer) handleMessageStoreFile(from string, msg *MessageStoreFile)
 		return fmt.Errorf("peer (%s) could no be found", from)
 	}
 	fmt.Printf("[%s]:\n", fs.Transport.Addr())
-	size, err := fs.store.Write(msg.Key, io.LimitReader(peer, msg.Size))
+	size, err := fs.store.Write(msg.ID, msg.Key, io.LimitReader(peer, msg.Size))
 	if err != nil {
 		return err
 	}
@@ -176,7 +185,7 @@ func (fs *FileServer) StoreData(key string, reader io.Reader) error {
 	fileBuff := new(bytes.Buffer)
 	tee := io.TeeReader(reader, fileBuff)
 
-	size, err := fs.store.Write(key, tee)
+	size, err := fs.store.Write(fs.ID, key, tee)
 	if err != nil {
 		return err
 	}
@@ -184,6 +193,7 @@ func (fs *FileServer) StoreData(key string, reader io.Reader) error {
 
 	msg := Message{
 		Payload: MessageStoreFile{
+			ID:   fs.ID,
 			Key:  crypto.HashKey(key),
 			Size: size + 16,
 		},
@@ -213,9 +223,9 @@ func (fs *FileServer) StoreData(key string, reader io.Reader) error {
 
 func (fs *FileServer) GetData(key string) (io.Reader, error) {
 	hashKey := crypto.HashKey(key)
-	if fs.store.Has(hashKey) {
+	if fs.store.Has(fs.ID, hashKey) {
 		fmt.Printf("[%s] Serving file (%s) from local disk\n", fs.Transport.Addr(), key)
-		_, r, err := fs.store.Read(key)
+		_, r, err := fs.store.Read(fs.ID, key)
 		return r, err
 	}
 
@@ -224,6 +234,7 @@ func (fs *FileServer) GetData(key string) (io.Reader, error) {
 	msg := Message{
 		Payload: MessageGetFile{
 			Key: hashKey,
+			ID:  fs.ID,
 		},
 	}
 
@@ -240,7 +251,7 @@ func (fs *FileServer) GetData(key string) (io.Reader, error) {
 
 		var fileSize int64
 		binary.Read(peer, binary.LittleEndian, &fileSize)
-		n, err := fs.store.WriteDecrypt(fs.EncryptionKey, key, io.LimitReader(peer, fileSize))
+		n, err := fs.store.WriteDecrypt(fs.ID, fs.EncryptionKey, key, io.LimitReader(peer, fileSize))
 		if err != nil {
 			return nil, err
 		}
@@ -249,7 +260,7 @@ func (fs *FileServer) GetData(key string) (io.Reader, error) {
 		peer.CloseStream()
 	}
 
-	_, r, err := fs.store.Read(key)
+	_, r, err := fs.store.Read(fs.ID, key)
 	return r, err
 }
 
