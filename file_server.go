@@ -155,7 +155,7 @@ func (fs *FileServer) handleMessageStoreFile(from string, msg *MessageStoreFile)
 	if !ok {
 		return fmt.Errorf("peer (%s) could no be found", from)
 	}
-	fmt.Printf("[%s]:\n", fs.Transport.Addr())
+
 	size, err := fs.store.Write(msg.ID, msg.Key, io.LimitReader(peer, msg.Size))
 	if err != nil {
 		return err
