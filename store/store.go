@@ -5,6 +5,8 @@ import (
 	"io"
 	"log"
 	"os"
+
+	"github.com/Hhanri/distributed_storage_system/crypto"
 )
 
 const DefaultRootStorage string = "../storage"
@@ -75,27 +77,38 @@ func (s *Store) Write(key string, reader io.Reader) (int64, error) {
 	return s.writeStream(key, reader)
 }
 
-func (s *Store) writeStream(key string, reader io.Reader) (int64, error) {
+func (s *Store) WriteDecrypt(encKey []byte, key string, reader io.Reader) (int64, error) {
+	file, err := s.openFileForWriting(key, reader)
+	if err != nil {
+		return 0, err
+	}
 
+	n, err := crypto.CopyDecrypt(encKey, reader, file)
+	return int64(n), err
+}
+
+func (s *Store) writeStream(key string, reader io.Reader) (int64, error) {
+	file, err := s.openFileForWriting(key, reader)
+	if err != nil {
+		return 0, err
+	}
+
+	return io.Copy(file, reader)
+
+}
+
+func (s *Store) LogWrite(n int64, addr string) {
+	log.Printf("Written (%d) bytes to: %s", n, addr)
+}
+
+func (s *Store) openFileForWriting(key string, reader io.Reader) (*os.File, error) {
 	pathKey := s.PathTransform(key)
 
 	if err := os.MkdirAll(pathKey.DirPath(s.Root), os.ModePerm); err != nil {
-		return 0, err
+		return nil, err
 	}
 
 	fullPath := pathKey.FullPath(s.Root)
 
-	file, err := os.Create(fullPath)
-	if err != nil {
-		return 0, err
-	}
-
-	n, err := io.Copy(file, reader)
-	if err != nil {
-		return 0, err
-	}
-
-	log.Printf("Written (%d) bytes to disk: %s", n, fullPath)
-
-	return n, nil
+	return os.Create(fullPath)
 }

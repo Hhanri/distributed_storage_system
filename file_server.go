@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Hhanri/distributed_storage_system/crypto"
 	"github.com/Hhanri/distributed_storage_system/p2p"
 	"github.com/Hhanri/distributed_storage_system/store"
 )
@@ -18,6 +19,7 @@ type FileServerOpts struct {
 	store.StoreOpts
 	Transport      p2p.Transport
 	BootstrapNodes []string
+	EncryptionKey  []byte
 }
 
 type FileServer struct {
@@ -134,10 +136,11 @@ func (fs *FileServer) handleMessageStoreFile(from string, msg *MessageStoreFile)
 		return fmt.Errorf("peer (%s) could no be found", from)
 	}
 	fmt.Printf("[%s]:\n", fs.Transport.Addr())
-	_, err := fs.store.Write(msg.Key, io.LimitReader(peer, msg.Size))
+	size, err := fs.store.Write(msg.Key, io.LimitReader(peer, msg.Size))
 	if err != nil {
 		return err
 	}
+	fs.store.LogWrite(size, fs.Transport.Addr())
 
 	return nil
 }
@@ -177,11 +180,12 @@ func (fs *FileServer) StoreData(key string, reader io.Reader) error {
 	if err != nil {
 		return err
 	}
+	fs.store.LogWrite(size, fs.Transport.Addr())
 
 	msg := Message{
 		Payload: MessageStoreFile{
-			Key:  key,
-			Size: size,
+			Key:  crypto.HashKey(key),
+			Size: size + 16,
 		},
 	}
 
@@ -191,19 +195,25 @@ func (fs *FileServer) StoreData(key string, reader io.Reader) error {
 
 	time.Sleep(time.Millisecond * 5)
 
+	peers := []io.Writer{}
 	for _, peer := range fs.peers {
-		peer.Send([]byte{p2p.IncomingStream})
-		_, err := io.Copy(peer, fileBuff)
-		if err != nil {
-			return err
-		}
+		peers = append(peers, peer)
+	}
+
+	mw := io.MultiWriter(peers...)
+	mw.Write([]byte{p2p.IncomingStream})
+
+	_, err = crypto.CopyEncrypt(fs.EncryptionKey, fileBuff, mw)
+	if err != nil {
+		return err
 	}
 
 	return nil
 }
 
 func (fs *FileServer) GetData(key string) (io.Reader, error) {
-	if fs.store.Has(key) {
+	hashKey := crypto.HashKey(key)
+	if fs.store.Has(hashKey) {
 		fmt.Printf("[%s] Serving file (%s) from local disk\n", fs.Transport.Addr(), key)
 		_, r, err := fs.store.Read(key)
 		return r, err
@@ -213,7 +223,7 @@ func (fs *FileServer) GetData(key string) (io.Reader, error) {
 
 	msg := Message{
 		Payload: MessageGetFile{
-			Key: key,
+			Key: hashKey,
 		},
 	}
 
@@ -230,8 +240,7 @@ func (fs *FileServer) GetData(key string) (io.Reader, error) {
 
 		var fileSize int64
 		binary.Read(peer, binary.LittleEndian, &fileSize)
-
-		n, err := fs.store.Write(key, io.LimitReader(peer, fileSize))
+		n, err := fs.store.WriteDecrypt(fs.EncryptionKey, key, io.LimitReader(peer, fileSize))
 		if err != nil {
 			return nil, err
 		}
