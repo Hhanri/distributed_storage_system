@@ -71,4 +71,9 @@ func main() {
 
 	fmt.Println(string(bytes))
 
+	time.Sleep(time.Millisecond * 5)
+	server2.DeleteData(key)
+
+	select {}
+
 }

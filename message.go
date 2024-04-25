@@ -15,3 +15,8 @@ type MessageGetFile struct {
 	ID  string
 	Key string
 }
+
+type MessageDeleteFile struct {
+	ID  string
+	Key string
+}

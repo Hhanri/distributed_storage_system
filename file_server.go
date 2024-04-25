@@ -96,9 +96,20 @@ func (fs *FileServer) handleMessage(from string, msg *Message) error {
 		return fs.handleMessageStoreFile(from, &v)
 	case MessageGetFile:
 		return fs.handleMessageGetFile(from, &v)
+	case MessageDeleteFile:
+		return fs.handleMessageDeleteFile(from, &v)
 	}
 
 	return nil
+}
+
+func (fs *FileServer) handleMessageDeleteFile(from string, msg *MessageDeleteFile) error {
+	if !fs.store.Has(msg.ID, msg.Key) {
+		return fmt.Errorf("[%s] Needs to delete file (%s) but was not found on disk\n", fs.Transport.Addr(), msg.Key)
+	}
+
+	fmt.Printf("[%s] Deleting file (%s)\n", fs.Transport.Addr(), msg.Key)
+	return fs.store.Delete(msg.ID, msg.Key)
 }
 
 func (fs *FileServer) handleMessageGetFile(from string, msg *MessageGetFile) error {
@@ -182,10 +193,12 @@ func (fs *FileServer) broadcast(msg *Message) error {
 
 func (fs *FileServer) StoreData(key string, reader io.Reader) error {
 
+	hashKey := crypto.HashKey(key)
+
 	fileBuff := new(bytes.Buffer)
 	tee := io.TeeReader(reader, fileBuff)
 
-	size, err := fs.store.Write(fs.ID, key, tee)
+	size, err := fs.store.Write(fs.ID, hashKey, tee)
 	if err != nil {
 		return err
 	}
@@ -194,7 +207,7 @@ func (fs *FileServer) StoreData(key string, reader io.Reader) error {
 	msg := Message{
 		Payload: MessageStoreFile{
 			ID:   fs.ID,
-			Key:  crypto.HashKey(key),
+			Key:  hashKey,
 			Size: size + 16,
 		},
 	}
@@ -225,7 +238,7 @@ func (fs *FileServer) GetData(key string) (io.Reader, error) {
 	hashKey := crypto.HashKey(key)
 	if fs.store.Has(fs.ID, hashKey) {
 		fmt.Printf("[%s] Serving file (%s) from local disk\n", fs.Transport.Addr(), key)
-		_, r, err := fs.store.Read(fs.ID, key)
+		_, r, err := fs.store.Read(fs.ID, hashKey)
 		return r, err
 	}
 
@@ -251,7 +264,7 @@ func (fs *FileServer) GetData(key string) (io.Reader, error) {
 
 		var fileSize int64
 		binary.Read(peer, binary.LittleEndian, &fileSize)
-		n, err := fs.store.WriteDecrypt(fs.ID, fs.EncryptionKey, key, io.LimitReader(peer, fileSize))
+		n, err := fs.store.WriteDecrypt(fs.ID, fs.EncryptionKey, hashKey, io.LimitReader(peer, fileSize))
 		if err != nil {
 			return nil, err
 		}
@@ -260,8 +273,34 @@ func (fs *FileServer) GetData(key string) (io.Reader, error) {
 		peer.CloseStream()
 	}
 
-	_, r, err := fs.store.Read(fs.ID, key)
+	_, r, err := fs.store.Read(fs.ID, hashKey)
 	return r, err
+}
+
+func (fs *FileServer) DeleteData(key string) error {
+	hashKey := crypto.HashKey(key)
+
+	if fs.store.Has(fs.ID, hashKey) {
+		fmt.Printf("[%s] Deleting file (%s) from local disk\n", fs.Transport.Addr(), key)
+
+		err := fs.store.Delete(fs.ID, hashKey)
+		if err != nil {
+			return err
+		}
+	}
+
+	msg := Message{
+		Payload: MessageDeleteFile{
+			ID:  fs.ID,
+			Key: hashKey,
+		},
+	}
+
+	if err := fs.broadcast(&msg); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (fs *FileServer) Stop() {
@@ -292,4 +331,5 @@ func (fs *FileServer) bootstrapNetwork() {
 func init() {
 	gob.Register(MessageStoreFile{})
 	gob.Register(MessageGetFile{})
+	gob.Register(MessageDeleteFile{})
 }
