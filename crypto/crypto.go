@@ -3,9 +3,17 @@ package crypto
 import (
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/md5"
 	"crypto/rand"
+	"encoding/hex"
 	"io"
 )
+
+func HashKey(key string) string {
+	hash := md5.Sum([]byte(key))
+
+	return hex.EncodeToString(hash[:])
+}
 
 func NewEncryptionKey() []byte {
 	keyBuff := make([]byte, 32)

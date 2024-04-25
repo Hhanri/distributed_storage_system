@@ -184,7 +184,7 @@ func (fs *FileServer) StoreData(key string, reader io.Reader) error {
 
 	msg := Message{
 		Payload: MessageStoreFile{
-			Key:  key,
+			Key:  crypto.HashKey(key),
 			Size: size + 16,
 		},
 	}
@@ -212,7 +212,8 @@ func (fs *FileServer) StoreData(key string, reader io.Reader) error {
 }
 
 func (fs *FileServer) GetData(key string) (io.Reader, error) {
-	if fs.store.Has(key) {
+	hashKey := crypto.HashKey(key)
+	if fs.store.Has(hashKey) {
 		fmt.Printf("[%s] Serving file (%s) from local disk\n", fs.Transport.Addr(), key)
 		_, r, err := fs.store.Read(key)
 		return r, err
@@ -222,7 +223,7 @@ func (fs *FileServer) GetData(key string) (io.Reader, error) {
 
 	msg := Message{
 		Payload: MessageGetFile{
-			Key: key,
+			Key: hashKey,
 		},
 	}
 
